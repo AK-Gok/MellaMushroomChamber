@@ -16,6 +16,8 @@ typedef struct {
       int16_t outputValue;
       uint16_t integratorNegativeWindupCounter;
       uint16_t integratorPositiveWindupCounter;
+      uint16_t overSetPointCounter;
+      uint16_t underSetPointCounter;
    } _private;
 } HumidityController_t;
 

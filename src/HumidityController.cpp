@@ -1,7 +1,8 @@
 /*
   Copyright (c) 2022 FirstBuild
-  NM 2025.03.09 updated PARAMETER_MIN_ANALOG_OUTPUT to PARAMETER_MIN_ANALOG_RH_OUTPUT in 3 locations to create a min output that will support a fogger
-   -- this will just keep the fans always going at 170... we need a way to shut them off as well
+  NM 2025.03.10 update:
+   1. PARAMETER_MIN_ANALOG_OUTPUT to PARAMETER_MIN_ANALOG_RH_OUTPUT in 3 locations to create a min output that will support a fogger -- this will just keep the fans always going at 170... we need a way to shut them off as well
+   2. Updated CalculateFanOutput(void) to bypass PID if over RH
 */
 
 #include "HumidityController.h"
@@ -16,6 +17,7 @@
 #define FULL_HUMIDITY (100)
 #define INTEGRATOR_WINDUP_DETECTION_SECONDS (15)
 #define INTEGRATOR_WINDUP_DETECTION_COUNT_MAX ((INTEGRATOR_WINDUP_DETECTION_SECONDS * MS_PER_SEC) / PARAMETER_APPLICATION_RUN_DELAY_MS)
+#define SETPOINT_OVERRUNN_COUNT_MAX ((PARAMETER_HUMIDITY_OVERRUN_SEC * MS_PER_SEC) / PARAMETER_APPLICATION_RUN_DELAY_MS) // new counter to prevent oscillation
 
 static HumidityController_t instance;
 static FastPID humidityPid(PARAMETER_HUMIDITY_PID_KP, PARAMETER_HUMIDITY_PID_KI, PARAMETER_HUMIDITY_PID_KD, (MS_PER_SEC / PARAMETER_APPLICATION_RUN_DELAY_MS), 8, false);
@@ -49,7 +51,7 @@ static void ResetPid(void)
 {
    humidityPid.clear();
    humidityPid.configure(PARAMETER_HUMIDITY_PID_KP, PARAMETER_HUMIDITY_PID_KI, PARAMETER_HUMIDITY_PID_KD, (MS_PER_SEC / PARAMETER_APPLICATION_RUN_DELAY_MS), 8, false);
-   humidityPid.setOutputRange(PARAMETER_MIN_ANALOG_OUTPUT, PARAMETER_MAX_ANALOG_OUTPUT);
+   humidityPid.setOutputRange(PARAMETER_MIN_ANALOG_RH_OUTPUT, PARAMETER_MAX_ANALOG_OUTPUT);
 
    if (humidityPid.err())
    {
@@ -89,7 +91,7 @@ static void PreventPositiveIntegratorWindup(void)
  */
 static void PreventNegativeIntegratorWindup(void)
 {
-   if ((instance._private.pidRequest == PARAMETER_MIN_ANALOG_OUTPUT) && (instance._private.setPoint > instance._private.sensorValue))
+   if ((instance._private.pidRequest == PARAMETER_MIN_ANALOG_RH_OUTPUT) && (instance._private.setPoint > instance._private.sensorValue))
    {
       if (instance._private.integratorNegativeWindupCounter++ >= INTEGRATOR_WINDUP_DETECTION_COUNT_MAX)
       {
@@ -105,24 +107,59 @@ static void PreventNegativeIntegratorWindup(void)
 
 static void CalculateFanOutput(void)
 {
-   instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
-
-   if (0 == instance._private.setPoint)
+   //NM 2025.03.10 adding a bypass fan shut down if RH over set point.. also changed the min output to work with fogger
+   if (instance._private.sensorValue > instance._private.setPoint) //new IF statement
    {
-      ResetPid();
-      instance._private.outputValue = 0;
-   }
-   else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
-   {
-      instance._private.outputValue = PARAMETER_MIN_ANALOG_OUTPUT;
-      PreventNegativeIntegratorWindup();
+      if(instance._private.overSetPointCounter > SETPOINT_OVERRUNN_COUNT_MAX)
+      {
+         // ResetPid();
+         instance._private.outputValue = 0;
+         instance._private.overSetPointCounter = 0;
+         instance._private.underSetPointCounter = 0;
+      }
+      else 
+      { 
+         instance._private.overSetPointCounter++;
+      } 
    }
    else
    {
-      instance._private.outputValue = instance._private.pidRequest;
-      PreventPositiveIntegratorWindup();
+      if (instance._private.underSetPointCounter > SETPOINT_OVERRUNN_COUNT_MAX)
+      {
+         instance._private.outputValue = PARAMETER_MAX_ANALOG_OUTPUT;
+         instance._private.overSetPointCounter = 0;
+      }
+      else
+      {
+         instance._private.underSetPointCounter++;
+      }
    }
+/**  
+ * Update 2025.03.14 NM 
+ * Commented out PID section as we are just turning this on and off full power or zero power
+ * This section alread used PARAMETER_MIN_ANALOG_RH_OUTPUT so it was just 255 or 0
+ * 
+   else
+   {
+      instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
 
+      if (0 == instance._private.setPoint)
+      {
+         ResetPid();
+         instance._private.outputValue = 0;
+      }
+      else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
+      {
+         instance._private.outputValue = PARAMETER_MIN_ANALOG_RH_OUTPUT;
+         PreventNegativeIntegratorWindup();
+      }
+      else
+      {
+         instance._private.outputValue = instance._private.pidRequest;
+         PreventPositiveIntegratorWindup();
+      }
+   }   
+*/
    analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
 }
 
@@ -157,6 +194,8 @@ void HumidityController_LogHeader(void)
    Logging_Info_Data("RH Read, ");
    Logging_Info_Data("RH Output, ");
    Logging_Info_Data("RH PID Out, ");
+   Logging_Info_Data("RH -Set, ");
+   Logging_Info_Data("RH +Set, ");
    Logging_Info_Data("RH -ISat, ");
    Logging_Info_Data("RH +ISat, ");
    Logging_Info_Data("|, ");
@@ -166,8 +205,10 @@ void HumidityController_LogInfo(void)
 {
    Logging_Info_Data_1("%6d %%RH, ", int(instance._private.setPoint));
    Logging_Info_Data_1("%3d %%RH, ", int(instance._private.sensorValue));
-   Logging_Info_Data_1("%3d Fan Command, ", instance._private.outputValue);
+   Logging_Info_Data_1("%3d Fan Command NM2, ", instance._private.outputValue);
    Logging_Info_Data_1("%3d PID Output,", instance._private.pidRequest);
+   Logging_Info_Data_1("%3d -Set Count,", instance._private.underSetPointCounter);
+   Logging_Info_Data_1("%3d +Set Count,", instance._private.overSetPointCounter);
    Logging_Info_Data_1("%3d -ISat Count, ", instance._private.integratorNegativeWindupCounter);
    Logging_Info_Data_1("%3d +ISat Count, ", instance._private.integratorPositiveWindupCounter);
    Logging_Info_Data("|, ");
@@ -187,6 +228,8 @@ void HumidityController_Init(void)
    ResetPid();
    instance._private.integratorNegativeWindupCounter = 0;
    instance._private.integratorPositiveWindupCounter = 0;
+   instance._private.underSetPointCounter = 0;
+   instance._private.overSetPointCounter = 0;
    instance._private.pidRequest = 0;
    instance._private.outputValue = 0;
 }

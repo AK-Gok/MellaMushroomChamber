@@ -14,9 +14,10 @@
 #define PARAMETER_APPLICATION_LOG_DELAY_MS          (1000)
 #define PARAMETER_FAN_STALL_SPEED                   (20)
 
-#define PARAMETER_MIN_ANALOG_RH_OUTPUT              (170)  //CAN WE USE A SEPERATE MINOUTPUT FOR RH TO KEEP THE PWM HIGH ENOUGH FOR THE FOGGER
-#define PARAMETER_HUMIDITY_MIN_SETPOINT             (50)
-#define PARAMETER_HUMIDITY_MAX_SETPOINT             (82)
+#define PARAMETER_MIN_ANALOG_RH_OUTPUT              (255)  //CAN WE USE A SEPERATE MINOUTPUT FOR RH TO KEEP THE PWM HIGH ENOUGH FOR THE FOGGER
+#define PARAMETER_HUMIDITY_OVERRUN_SEC              (7)   // seconds to wait under or over the setpoint to prevent oscillation when running only 1/0
+#define PARAMETER_HUMIDITY_MIN_SETPOINT             (62)  // 2025.03.27 updated from 50 to 62 (nothing is that low) to give more granilar control (every tick is 2%)
+#define PARAMETER_HUMIDITY_MAX_SETPOINT             (92) //2025.03.12 changed from 82 to 88 in hopes to get 94%rh, then 90 to get 96
 #define PARAMETER_HUMIDITY_PID_KP                   (float(5))
 #define PARAMETER_HUMIDITY_PID_KI                   (float(0.2))
 #define PARAMETER_HUMIDITY_PID_KD                   (float(0.001))
