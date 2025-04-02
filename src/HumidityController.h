@@ -11,6 +11,8 @@ typedef struct {
    struct {
       double setPoint;
       double sensorValue;
+      double tempValue;
+      bool heatStatus;
       Adafruit_SHT31 sensor;
       int16_t pidRequest;
       int16_t outputValue;

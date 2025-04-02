@@ -43,6 +43,14 @@ static void UpdateReadingFromSensor(void)
 {
    instance._private.sensor.reset();
    instance._private.sensorValue = instance._private.sensor.readHumidity();
+   instance._private.tempValue = instance._private.sensor.readTemperature();
+   instance._private.heatStatus = instance._private.sensor.isHeaterEnabled();
+
+}
+
+static String GetStatusAsString(void)
+{
+   return (instance._private.heatStatus == true) ? "Enabled" : "Disabled";
 }
 
 static void ResetPid(void)
@@ -155,6 +163,8 @@ void HumidityController_LogHeader(void)
 {
    Logging_Info_Data("RH Setting, ");
    Logging_Info_Data("RH Read, ");
+   Logging_Info_Data("F Read, ");
+   Logging_Info_Data("SHT31 Heater, ");
    Logging_Info_Data("RH Output, ");
    Logging_Info_Data("RH PID Out, ");
    Logging_Info_Data("RH -ISat, ");
@@ -166,6 +176,8 @@ void HumidityController_LogInfo(void)
 {
    Logging_Info_Data_1("%6d %%RH, ", int(instance._private.setPoint));
    Logging_Info_Data_1("%3d %%RH, ", int(instance._private.sensorValue));
+   Logging_Info_Data_1("%3d F, ", int(instance._private.tempValue));
+   Logging_Info_Data_1("%9s, ", GetStatusAsString().c_str());
    Logging_Info_Data_1("%3d Fan Command, ", instance._private.outputValue);
    Logging_Info_Data_1("%3d PID Output,", instance._private.pidRequest);
    Logging_Info_Data_1("%3d -ISat Count, ", instance._private.integratorNegativeWindupCounter);

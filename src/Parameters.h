@@ -8,13 +8,16 @@
 #define PARAMETER_LOG_LEVEL                         LogLevel_Info //LogLevel_Verbose  // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
 // #define LIGHT_ENCODER_DIRECT
 
+// define high level control parameters
+#define PARAMETER_RH_MODE                           SINGLE // single = single chanel fogger and fan
+
+
 #define PARAMETER_MAX_ANALOG_OUTPUT                 (255)
 #define PARAMETER_MIN_ANALOG_OUTPUT                 (0)
 #define PARAMETER_APPLICATION_RUN_DELAY_MS          (100)
 #define PARAMETER_APPLICATION_LOG_DELAY_MS          (1000)
 #define PARAMETER_FAN_STALL_SPEED                   (20)
 
-#define PARAMETER_MIN_ANALOG_RH_OUTPUT              (170)  //CAN WE USE A SEPERATE MINOUTPUT FOR RH TO KEEP THE PWM HIGH ENOUGH FOR THE FOGGER
 #define PARAMETER_HUMIDITY_MIN_SETPOINT             (50)
 #define PARAMETER_HUMIDITY_MAX_SETPOINT             (82)
 #define PARAMETER_HUMIDITY_PID_KP                   (float(5))
