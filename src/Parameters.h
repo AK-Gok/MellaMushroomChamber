@@ -5,11 +5,11 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#define PARAMETER_LOG_LEVEL                         LogLevel_Info //LogLevel_Verbose  // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
+#define PARAMETER_LOG_LEVEL                        LogLevel_Verbose  // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
 // #define LIGHT_ENCODER_DIRECT
 
 // define high level control parameters
-#define PARAMETER_RH_MODE                          RH_MODE_DUTY      // RH_MODE_DUTY (also disables light flashing), RH_MODE_PWM                  
+#define PARAMETER_RH_MODE                           RH_MODE_DUTY      // RH_MODE_DUTY (also disables light flashing), RH_MODE_PWM                  
 
 
 #define PARAMETER_MAX_ANALOG_OUTPUT                 (255)

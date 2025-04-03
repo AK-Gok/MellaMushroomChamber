@@ -127,19 +127,22 @@ static void HumidCycleDisable(void);
 
 static void HumidCycleEnable(void)
 {
+   if(instance._private.enabled) return;
    instance._private.enabled = true;
    lastCycleMillis = millis();
-   HumidityCyclingDelayMs = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * (20/100);
-   Timers_SetupOneShotTimer(TimerId_AirExchangeCycling, HumidCycleDisable, HumidityCyclingDelayMs);
+   HumidityCyclingDelayMs = (uint32_t)(PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * (20.0 / 100.0));
+   Timers_SetupOneShotTimer(TimerID_HumidityCycle, HumidCycleDisable, HumidityCyclingDelayMs);
    Logging_Verbose_1("Enabling Humidifier for %lu sec", (HumidityCyclingDelayMs/1000));
 }
 
 static void HumidCycleDisable(void)
 {
+   Serial.println("HumidCycleDisable called!"); 
+   if(!instance._private.enabled) return;
    instance._private.enabled = false;
    lastCycleMillis = millis();
-   HumidityCyclingDelayMs = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * ((100-20)/100);
-   Timers_SetupOneShotTimer(TimerId_AirExchangeCycling, HumidCycleEnable, HumidityCyclingDelayMs);
+   HumidityCyclingDelayMs = (uint32_t)(PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * (80.0 / 100.0));
+   Timers_SetupOneShotTimer(TimerID_HumidityCycle, HumidCycleEnable, HumidityCyclingDelayMs);
    Logging_Verbose_1("Disabling Humidifier for %lu", (HumidityCyclingDelayMs/1000));
 }
 
