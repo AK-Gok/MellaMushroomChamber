@@ -13,6 +13,7 @@ typedef struct {
       double sensorValue;
       double tempValue;
       bool heatStatus;
+      bool enabled;
       Adafruit_SHT31 sensor;
       int16_t pidRequest;
       int16_t outputValue;
@@ -20,6 +21,12 @@ typedef struct {
       uint16_t integratorPositiveWindupCounter;
    } _private;
 } HumidityController_t;
+
+// Enum for RH Modes
+typedef enum {
+   RH_MODE_DUTY,  // 0
+   RH_MODE_PWM      // 1
+ } RH_mode_t; 
 
 bool HumidityController_ValueIsNormal(void);
 

@@ -11,6 +11,7 @@
 #include "PinDefinitions.h"
 #include <FastPID.h>
 #include "Encoders.h"
+#include "Timers.h"
 #include "Logging.h"
 
 #define FULL_HUMIDITY (100)
@@ -19,6 +20,9 @@
 
 static HumidityController_t instance;
 static FastPID humidityPid(PARAMETER_HUMIDITY_PID_KP, PARAMETER_HUMIDITY_PID_KI, PARAMETER_HUMIDITY_PID_KD, (MS_PER_SEC / PARAMETER_APPLICATION_RUN_DELAY_MS), 8, false);
+static uint32_t lastCycleMillis = 0;
+static uint32_t HumidityCyclingDelayMs = 0;
+
 
 static void UpdateSetpointFromKnob(void)
 {
@@ -27,6 +31,14 @@ static void UpdateSetpointFromKnob(void)
    if (knobValue == ENCODER_MIN_POSITION)
    {
       instance._private.setPoint = 0;
+   }
+   else if (PARAMETER_RH_MODE == RH_MODE_DUTY){
+      instance._private.setPoint = map(
+         knobValue,
+         (ENCODER_MIN_POSITION + 1),
+         ENCODER_MAX_POSITION,
+         1,
+         100); // 1-100% duty cycle
    }
    else
    {
@@ -111,35 +123,91 @@ static void PreventNegativeIntegratorWindup(void)
    }
 }
 
+static void HumidCycleDisable(void);
+
+static void HumidCycleEnable(void)
+{
+   instance._private.enabled = true;
+   lastCycleMillis = millis();
+   HumidityCyclingDelayMs = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * (20/100);
+   Timers_SetupOneShotTimer(TimerId_AirExchangeCycling, HumidCycleDisable, HumidityCyclingDelayMs);
+   Logging_Verbose_1("Enabling Humidifier for %lu sec", (HumidityCyclingDelayMs/1000));
+}
+
+static void HumidCycleDisable(void)
+{
+   instance._private.enabled = false;
+   lastCycleMillis = millis();
+   HumidityCyclingDelayMs = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * ((100-20)/100);
+   Timers_SetupOneShotTimer(TimerId_AirExchangeCycling, HumidCycleEnable, HumidityCyclingDelayMs);
+   Logging_Verbose_1("Disabling Humidifier for %lu", (HumidityCyclingDelayMs/1000));
+}
+
+static bool IsCycleEnabled(void)
+{
+   return instance._private.enabled;
+}
+
+static String GetStatusAsString2(void)
+{
+   return (IsCycleEnabled() == true) ? "Enabled" : "Disabled";
+}
+
+static uint16_t GetStatusTimeRemaining(void)
+{
+   uint16_t cyclingDelay = (HumidityCyclingDelayMs / MS_PER_SEC);
+   uint16_t secSinceLastCycle = ((millis() - lastCycleMillis) / MS_PER_SEC);
+
+   return (cyclingDelay - secSinceLastCycle);
+}
+
 static void CalculateFanOutput(void)
 {
-   instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
+   //IF in DUTY CYCLE MODE check what part of cycle you are in
+   if(PARAMETER_RH_MODE == RH_MODE_DUTY){
+      if(IsCycleEnabled())
+      {
+         digitalWrite(HUMIDITY_OUTPUT_PIN, HIGH);
+      }
+      else
+      {
+         digitalWrite(HUMIDITY_OUTPUT_PIN, LOW);
+      }
+   }
+   
+   // else Shipped configuration
+   else {  
+      instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
 
-   if (0 == instance._private.setPoint)
-   {
-      ResetPid();
-      instance._private.outputValue = 0;
-   }
-   else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
-   {
-      instance._private.outputValue = PARAMETER_MIN_ANALOG_OUTPUT;
-      PreventNegativeIntegratorWindup();
-   }
-   else
-   {
-      instance._private.outputValue = instance._private.pidRequest;
-      PreventPositiveIntegratorWindup();
-   }
+      if (0 == instance._private.setPoint)
+      {
+         ResetPid();
+         instance._private.outputValue = 0;
+      }
+      else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
+      {
+         instance._private.outputValue = PARAMETER_MIN_ANALOG_OUTPUT;
+         PreventNegativeIntegratorWindup();
+      }
+      else
+      {
+         instance._private.outputValue = instance._private.pidRequest;
+         PreventPositiveIntegratorWindup();
+      }
 
-   analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
+      analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
+   } 
 }
 
 static void SetupPwmOutput(void)
 {
-   // Configure Timer 3
-   TCCR3A = 0b00000001; // Phase Correct PWM Mode, 8-bit, TOP = 0xFF
-   TCCR3B = 0b00000100; // Divide I/O clock by 256 (8MHz / 256 = 31,250 Hz)
-
+   //set up PWM if in PWM Mode
+   if(PARAMETER_RH_MODE == RH_MODE_PWM){
+      // Configure Timer 3
+      TCCR3A = 0b00000001; // Phase Correct PWM Mode, 8-bit, TOP = 0xFF
+      TCCR3B = 0b00000100; // Divide I/O clock by 256 (8MHz / 256 = 31,250 Hz)
+   }
+   //Either way set up output pin
    pinMode(HUMIDITY_OUTPUT_PIN, OUTPUT);
 }
 
@@ -165,6 +233,8 @@ void HumidityController_LogHeader(void)
    Logging_Info_Data("RH Read, ");
    Logging_Info_Data("F Read, ");
    Logging_Info_Data("SHT31 Heater, ");
+   Logging_Info_Data("Fogger Status, ");
+   Logging_Info_Data("RH Remain, ");
    Logging_Info_Data("RH Output, ");
    Logging_Info_Data("RH PID Out, ");
    Logging_Info_Data("RH -ISat, ");
@@ -178,6 +248,8 @@ void HumidityController_LogInfo(void)
    Logging_Info_Data_1("%3d %%RH, ", int(instance._private.sensorValue));
    Logging_Info_Data_1("%3d F, ", int(instance._private.tempValue));
    Logging_Info_Data_1("%9s, ", GetStatusAsString().c_str());
+   Logging_Info_Data_1("%9s, ", GetStatusAsString2().c_str());
+   Logging_Info_Data_1("%5u sec, ", GetStatusTimeRemaining());
    Logging_Info_Data_1("%3d Fan Command, ", instance._private.outputValue);
    Logging_Info_Data_1("%3d PID Output,", instance._private.pidRequest);
    Logging_Info_Data_1("%3d -ISat Count, ", instance._private.integratorNegativeWindupCounter);
@@ -197,6 +269,7 @@ void HumidityController_Init(void)
    SetupPwmOutput();
    SetupHumiditySensor();
    ResetPid();
+   if(PARAMETER_RH_MODE == RH_MODE_DUTY){HumidCycleEnable();}
    instance._private.integratorNegativeWindupCounter = 0;
    instance._private.integratorPositiveWindupCounter = 0;
    instance._private.pidRequest = 0;
