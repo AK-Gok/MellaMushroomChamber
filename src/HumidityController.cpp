@@ -28,12 +28,11 @@ typedef enum {
 static HumidityController_t instance;
 static FastPID humidityPid(PARAMETER_HUMIDITY_PID_KP, PARAMETER_HUMIDITY_PID_KI, PARAMETER_HUMIDITY_PID_KD, (MS_PER_SEC / PARAMETER_APPLICATION_RUN_DELAY_MS), 8, false);
 static uint32_t lastCycleMillis = 0;
-//static uint32_t HumidityCyclingDelayMs = 0;
 static HumState_t humState = HUM_STATE_OFF;  //start in OFF state 
-static uint32_t statusTimeRemain = 0;
 static uint32_t currentMillis = 0;
 static uint32_t onTime = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC;    // initialize at 50% duty cycle
 static uint32_t offTime = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC;   // initialize at 50% duty cycle
+static uint32_t totalCycleTime = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC;  
 
 static void UpdateSetpointFromKnob(void)
 {
@@ -43,7 +42,7 @@ static void UpdateSetpointFromKnob(void)
    {
       instance._private.setPoint = 0;
    }
-   else if (PARAMETER_RH_MODE == RH_MODE_DUTY){
+   else if (PARAMETER_HUMIDITY_MODE  ==  HUM_MODE_DUTY ){
       instance._private.setPoint = map(
          knobValue,
          (ENCODER_MIN_POSITION + 1),
@@ -133,37 +132,11 @@ static void PreventNegativeIntegratorWindup(void)
       instance._private.integratorNegativeWindupCounter = 0;
    }
 }
-/*
-static void HumidCycleDisable(void);
 
-static void HumidCycleEnable(void)
-{
-   if(instance._private.enabled) return;
-   instance._private.enabled = true;
-   lastCycleMillis = millis();
-   HumidityCyclingDelayMs = (uint32_t)(PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * (20.0 / 100.0));
-   Timers_SetupOneShotTimer(TimerID_HumidityCycle, HumidCycleDisable, HumidityCyclingDelayMs);
-   Logging_Verbose_1("Enabling Humidifier for %lu sec", (HumidityCyclingDelayMs/1000));
-}
-
-static void HumidCycleDisable(void)
-{
-   Serial.println("HumidCycleDisable called!"); 
-   if(!instance._private.enabled) return;
-   instance._private.enabled = false;
-   lastCycleMillis = millis();
-   HumidityCyclingDelayMs = (uint32_t)(PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC * (80.0 / 100.0));
-   Timers_SetupOneShotTimer(TimerID_HumidityCycle, HumidCycleEnable, HumidityCyclingDelayMs);
-   Logging_Verbose_1("Disabling Humidifier for %lu", (HumidityCyclingDelayMs/1000));
-}
-*/
  // Calculate new ON and OFF durations based on Duty Cycle
-
-
  static void UpdateHumState(void) {
    currentMillis = millis();
 
-   uint32_t totalCycleTime = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC;
    onTime =  (uint32_t)((float)totalCycleTime * (instance._private.setPoint / 100.0));
    //uint32_t onTime = int((totalCycleTime * instance._private.setPoint) / 100);
    offTime = totalCycleTime - onTime;
@@ -171,18 +144,14 @@ static void HumidCycleDisable(void)
    if (humState == HUM_STATE_OFF) {
        if (currentMillis - lastCycleMillis >= offTime) {
            humState = HUM_STATE_ON;
-           //instance._private.enabled = true;
            lastCycleMillis = currentMillis;
-           statusTimeRemain = int((offTime - (currentMillis-lastCycleMillis))/1000);
-           Logging_Verbose_1("Humidifier turned ON for %lu sec", onTime / 1000);
+           Logging_Verbose_1("Humidifier turned ON for %lu sec", onTime/MS_PER_SEC);
        }
    } 
    else if (humState == HUM_STATE_ON) {
        if (currentMillis - lastCycleMillis >= onTime) {
            humState = HUM_STATE_OFF;
-          // instance._private.enabled = false;
            lastCycleMillis = currentMillis;
-           statusTimeRemain = int((onTime - (currentMillis-lastCycleMillis))/MS_PER_SEC);
            Logging_Verbose_1("Humidifier turned OFF for %lu sec", offTime/MS_PER_SEC);
        }
    }
@@ -195,46 +164,22 @@ static String GetStatusAsString2(void)
 
 static uint16_t GetStatusTimeRemaining(void)
 {
-   if(humState==HUM_STATE_ON){
-      statusTimeRemain = int((onTime - (millis()-lastCycleMillis))/MS_PER_SEC);
+   uint32_t elapsed = millis() - lastCycleMillis;
+   uint32_t remaining = 0;
+
+   if (humState == HUM_STATE_ON) {
+         remaining = (onTime > elapsed) ? (onTime - elapsed) : 0;
+   } else {
+         remaining = (offTime > elapsed) ? (offTime - elapsed) : 0;
    }
-   if(humState==HUM_STATE_OFF){
-      statusTimeRemain = int((offTime - (millis()-lastCycleMillis))/MS_PER_SEC);
-   }  
 
-   return (statusTimeRemain);
-
-   
+   return remaining / MS_PER_SEC;
 }
-
-/*
-static bool IsCycleEnabled(void)
-{
-   return instance._private.enabled;
-}
-
-static String GetStatusAsString2(void)
-{
-   return (IsCycleEnabled() == true) ? "Enabled" : "Disabled";
-}
-
-
-
-static uint16_t GetStatusTimeRemaining(void)
-{
-   uint16_t cyclingDelay = (HumidityCyclingDelayMs / MS_PER_SEC);
-   uint16_t secSinceLastCycle = ((millis() - lastCycleMillis) / MS_PER_SEC);
-
-   return (cyclingDelay - secSinceLastCycle);
-
-   
-}
-*/
 
 static void CalculateFanOutput(void)
 {
    //IF in DUTY CYCLE MODE check what part of cycle you are in
-   if(PARAMETER_RH_MODE == RH_MODE_DUTY){
+   if(PARAMETER_HUMIDITY_MODE  ==  HUM_MODE_DUTY ){
       if(humState == HUM_STATE_ON)
       {
          digitalWrite(HUMIDITY_OUTPUT_PIN, HIGH);
@@ -272,7 +217,7 @@ static void CalculateFanOutput(void)
 static void SetupPwmOutput(void)
 {
    //set up PWM if in PWM Mode
-   if(PARAMETER_RH_MODE == RH_MODE_PWM){
+   if(PARAMETER_HUMIDITY_MODE  == HUM_MODE_PWM){
       // Configure Timer 3
       TCCR3A = 0b00000001; // Phase Correct PWM Mode, 8-bit, TOP = 0xFF
       TCCR3B = 0b00000100; // Divide I/O clock by 256 (8MHz / 256 = 31,250 Hz)
@@ -331,7 +276,7 @@ void HumidityController_Run(void)
 {
    UpdateSetpointFromKnob();
    UpdateReadingFromSensor();
-   if(PARAMETER_RH_MODE == RH_MODE_DUTY){UpdateHumState();}
+   if(PARAMETER_HUMIDITY_MODE  ==  HUM_MODE_DUTY ){UpdateHumState();}
    CalculateFanOutput();
 }
 
@@ -340,7 +285,6 @@ void HumidityController_Init(void)
    SetupPwmOutput();
    SetupHumiditySensor();
    ResetPid();
-   //lastCycleMillis = millis();   // initialize timing
    humState = HUM_STATE_OFF;     // Start in OFF state
    instance._private.integratorNegativeWindupCounter = 0;
    instance._private.integratorPositiveWindupCounter = 0;

@@ -100,10 +100,14 @@ void State_Normal(tiny_fsm_t* _fsm, tiny_fsm_signal_t signal, const void* data)
          LightController_SetMode(LightMode_Normal);
          break;
       case SIGNAL_TICK:
-         if(!HumidityController_ValueIsNormal())
-         {
-            Fsm_Transition(State_Abnormal);
-         }
+         if(PARAMETER_HUMIDITY_MODE != HUM_MODE_DUTY)
+            {
+               if(!HumidityController_ValueIsNormal())
+               {
+                  Fsm_Transition(State_Abnormal);
+               }
+            }
+         // else do nothing, remain normal even if humidity is abnormal
          break;
       case SIGNAL_EXIT:
          break;

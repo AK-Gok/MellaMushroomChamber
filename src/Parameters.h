@@ -5,11 +5,11 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#define PARAMETER_LOG_LEVEL                        LogLevel_Verbose  // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
+#define PARAMETER_LOG_LEVEL                         LogLevel_Verbose  // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
 // #define LIGHT_ENCODER_DIRECT
 
 // define high level control parameters
-#define PARAMETER_RH_MODE                           RH_MODE_DUTY      // RH_MODE_DUTY (also disables light flashing), RH_MODE_PWM                  
+#define PARAMETER_HUMIDITY_MODE                     HUM_MODE_DUTY      // HUM_MODE_DUTY (also disables light flashing), RH_MODE_PWM                  
 
 
 #define PARAMETER_MAX_ANALOG_OUTPUT                 (255)
@@ -25,7 +25,7 @@
 #define PARAMETER_HUMIDITY_PID_KD                   (float(0.001))
 #define PARAMETER_HUMIDITY_ERROR_OFFSET             (12)
 #define PARAMETER_HUMIDITY_MINIMUM_OUTPUT           (2 * PARAMETER_FAN_STALL_SPEED) 
-#define PARAMETER_HUMIDITY_PERIOD_SEC               ((uint32_t)100) //1200sec = 20min periods for duty cycle calculation                   
+#define PARAMETER_HUMIDITY_PERIOD_SEC               ((uint32_t)600) //600sec = 10min periods for duty cycle calculation                   
 
 #define PARAMETER_AIR_EXCHANGE_MIN_SETPOINT         (0)
 #define PARAMETER_AIR_EXCHANGE_MAX_SETPOINT         (100)

@@ -24,9 +24,9 @@ typedef struct {
 
 // Enum for RH Modes
 typedef enum {
-   RH_MODE_DUTY,  // 0
-   RH_MODE_PWM      // 1
- } RH_mode_t; 
+   HUM_MODE_DUTY,  // 0
+   HUM_MODE_PWM      // 1
+ } HUM_mode_t; 
 
 bool HumidityController_ValueIsNormal(void);
 
