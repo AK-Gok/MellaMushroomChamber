@@ -25,7 +25,7 @@
 #define PARAMETER_HUMIDITY_PID_KD                   (float(0.001))
 #define PARAMETER_HUMIDITY_ERROR_OFFSET             (12)
 #define PARAMETER_HUMIDITY_MINIMUM_OUTPUT           (2 * PARAMETER_FAN_STALL_SPEED) 
-#define PARAMETER_HUMIDITY_PERIOD_SEC               ((uint32_t)1200) //20min periods for duty cycle calculation                   
+#define PARAMETER_HUMIDITY_PERIOD_SEC               ((uint32_t)100) //1200sec = 20min periods for duty cycle calculation                   
 
 #define PARAMETER_AIR_EXCHANGE_MIN_SETPOINT         (0)
 #define PARAMETER_AIR_EXCHANGE_MAX_SETPOINT         (100)
