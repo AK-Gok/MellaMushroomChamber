@@ -135,25 +135,24 @@ static void PreventNegativeIntegratorWindup(void)
 
  // Calculate new ON and OFF durations based on Duty Cycle
  static void UpdateHumState(void) {
-   currentMillis = millis();
-
-   onTime =  (uint32_t)((float)totalCycleTime * (instance._private.setPoint / 100.0));
-   //uint32_t onTime = int((totalCycleTime * instance._private.setPoint) / 100);
+   onTime =  (uint32_t)((float)(totalCycleTime) * (instance._private.setPoint / 100.0));
    offTime = totalCycleTime - onTime;
 
    if (humState == HUM_STATE_OFF) {
-       if (currentMillis - lastCycleMillis >= offTime) {
+       if (currentMillis >= offTime) {
            humState = HUM_STATE_ON;
-           lastCycleMillis = currentMillis;
+           currentMillis = 0;
            Logging_Verbose_1("Humidifier turned ON for %lu sec", onTime/MS_PER_SEC);
        }
+       else{currentMillis = currentMillis + PARAMETER_APPLICATION_RUN_DELAY_MS;}
    } 
    else if (humState == HUM_STATE_ON) {
-       if (currentMillis - lastCycleMillis >= onTime) {
+       if (currentMillis >= onTime) {
            humState = HUM_STATE_OFF;
-           lastCycleMillis = currentMillis;
+           currentMillis = 0;
            Logging_Verbose_1("Humidifier turned OFF for %lu sec", offTime/MS_PER_SEC);
        }
+       else{currentMillis = currentMillis + PARAMETER_APPLICATION_RUN_DELAY_MS;}
    }
 }
 
@@ -164,7 +163,7 @@ static String GetStatusAsString2(void)
 
 static uint16_t GetStatusTimeRemaining(void)
 {
-   uint32_t elapsed = millis() - lastCycleMillis;
+   uint32_t elapsed = currentMillis;
    uint32_t remaining = 0;
 
    if (humState == HUM_STATE_ON) {
@@ -250,7 +249,7 @@ void HumidityController_LogHeader(void)
    Logging_Info_Data("SHT31 Heater, ");
    Logging_Info_Data("Fogger Status, ");
    Logging_Info_Data("Status Remain, ");
-   Logging_Info_Data("Uptime, ");
+   //Logging_Info_Data("Uptime, ");
    Logging_Info_Data("RH Output, ");
    Logging_Info_Data("RH PID Out, ");
    Logging_Info_Data("RH -ISat, ");
@@ -266,7 +265,7 @@ void HumidityController_LogInfo(void)
    Logging_Info_Data_1("%9s, ", GetStatusAsString().c_str());
    Logging_Info_Data_1("%9s, ", GetStatusAsString2().c_str());
    Logging_Info_Data_1("%5u sec, ", GetStatusTimeRemaining());
-   Logging_Info_Data_1("%6lu ms, ", millis());
+   //Logging_Info_Data_1("%6lu ms, ", millis());   // all references to millis were removed, this was causing timer issues and the system would freeze
    Logging_Info_Data_1("%3d Fan Command, ", instance._private.outputValue);
    Logging_Info_Data_1("%3d PID Output,", instance._private.pidRequest);
    Logging_Info_Data_1("%3d -ISat Count, ", instance._private.integratorNegativeWindupCounter);
@@ -288,6 +287,7 @@ void HumidityController_Init(void)
    SetupHumiditySensor();
    ResetPid();
    humState = HUM_STATE_ON;     // Start in ON state
+   currentMillis = 0;
    instance._private.integratorNegativeWindupCounter = 0;
    instance._private.integratorPositiveWindupCounter = 0;
    instance._private.pidRequest = 0;
