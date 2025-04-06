@@ -135,7 +135,7 @@ void State_Abnormal(tiny_fsm_t* _fsm, tiny_fsm_signal_t signal, const void* data
          }
          break;
       case SIGNAL_EXIT:
-         // Required since we can exit based on the value becoming normal (not just time).
+         //Required since we can exit based on the value becoming normal (not just time).
          delayTimeSeconds = 0;
          break;
       default:

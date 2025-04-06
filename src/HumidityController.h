@@ -22,7 +22,7 @@ typedef struct {
    } _private;
 } HumidityController_t;
 
-// Enum for RH Modes
+// Enum for humidifier Modes
 typedef enum {
    HUM_MODE_DUTY,  // 0
    HUM_MODE_PWM      // 1

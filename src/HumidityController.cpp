@@ -250,6 +250,7 @@ void HumidityController_LogHeader(void)
    Logging_Info_Data("SHT31 Heater, ");
    Logging_Info_Data("Fogger Status, ");
    Logging_Info_Data("Status Remain, ");
+   Logging_Info_Data("Uptime, ");
    Logging_Info_Data("RH Output, ");
    Logging_Info_Data("RH PID Out, ");
    Logging_Info_Data("RH -ISat, ");
@@ -265,6 +266,7 @@ void HumidityController_LogInfo(void)
    Logging_Info_Data_1("%9s, ", GetStatusAsString().c_str());
    Logging_Info_Data_1("%9s, ", GetStatusAsString2().c_str());
    Logging_Info_Data_1("%5u sec, ", GetStatusTimeRemaining());
+   Logging_Info_Data_1("%6lu ms, ", millis());
    Logging_Info_Data_1("%3d Fan Command, ", instance._private.outputValue);
    Logging_Info_Data_1("%3d PID Output,", instance._private.pidRequest);
    Logging_Info_Data_1("%3d -ISat Count, ", instance._private.integratorNegativeWindupCounter);
@@ -285,7 +287,7 @@ void HumidityController_Init(void)
    SetupPwmOutput();
    SetupHumiditySensor();
    ResetPid();
-   humState = HUM_STATE_OFF;     // Start in OFF state
+   humState = HUM_STATE_ON;     // Start in ON state
    instance._private.integratorNegativeWindupCounter = 0;
    instance._private.integratorPositiveWindupCounter = 0;
    instance._private.pidRequest = 0;
