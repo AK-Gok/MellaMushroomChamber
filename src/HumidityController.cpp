@@ -48,7 +48,7 @@ static void UpdateSetpointFromKnob(void)
          (ENCODER_MIN_POSITION + 1),
          ENCODER_MAX_POSITION,
          1,
-         100); // 1-100% duty cycle
+         PARAMETER_HUMIDITY_MAX_DUTY_CYCLE); // 1-100% duty cycle
    }
    else
    {
