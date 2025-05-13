@@ -22,6 +22,12 @@ typedef struct {
    } _private;
 } LightController_t;
 
+// Enum for Light Modes
+typedef enum {
+   LIGHT_TIMER_OFF,  // 0
+   LIGHT_TIMER_ON      // 1
+ } LIGHT_mode_t; 
+
 void LightController_SetMode(LightMode_t mode);
 
 void LightController_LogHeader(void);
