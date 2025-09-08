@@ -1,7 +1,7 @@
 import serial
 import time
 
-port = '/dev/cu.usbmodem2101' # Replace with your actual port
+port = '/dev/cu.usbmodem2101' # Replace with your actual port ('/dev/ttyACM0'  on Ubuntu raspi)
 baud_rate = 115200 # Set to match the device's baud rate
 
 try:

@@ -7,6 +7,13 @@
 
 #include <tiny_fsm.h>
 
+// Enum for STATE Modes
+typedef enum {
+   STATE_IGNORE,  // 0
+   STATE_ON      // 1
+ } STATE_mode_t; 
+
+
 void State_StartUp(struct tiny_fsm_t* _fsm, tiny_fsm_signal_t signal, const void* data);
 
 void State_Normal(struct tiny_fsm_t* _fsm, tiny_fsm_signal_t signal, const void* data);

@@ -100,7 +100,7 @@ void State_Normal(tiny_fsm_t* _fsm, tiny_fsm_signal_t signal, const void* data)
          LightController_SetMode(LightMode_Normal);
          break;
       case SIGNAL_TICK:
-         if(PARAMETER_HUMIDITY_MODE != HUM_MODE_DUTY)
+         if(PARAMETER_STATE_MODE != STATE_IGNORE)
             {
                if(!HumidityController_ValueIsNormal())
                {

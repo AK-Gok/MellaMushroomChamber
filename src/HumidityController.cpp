@@ -216,7 +216,7 @@ static void CalculateFanOutput(void)
 static void SetupPwmOutput(void)
 {
    //set up PWM if in PWM Mode
-   if(PARAMETER_HUMIDITY_MODE  == HUM_MODE_PWM){
+   if(PARAMETER_HUMIDITY_MODE  == HUM_MODE_PID){
       // Configure Timer 3
       TCCR3A = 0b00000001; // Phase Correct PWM Mode, 8-bit, TOP = 0xFF
       TCCR3B = 0b00000100; // Divide I/O clock by 256 (8MHz / 256 = 31,250 Hz)

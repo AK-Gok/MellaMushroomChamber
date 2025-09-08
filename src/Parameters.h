@@ -9,7 +9,8 @@
 // #define LIGHT_ENCODER_DIRECT
 
 // define high level control parameters
-#define PARAMETER_HUMIDITY_MODE                     HUM_MODE_DUTY      // HUM_MODE_DUTY (also disables light flashing), HUM_MODE_PWM                  
+#define PARAMETER_STATE_MODE                        STATE_IGNORE       // STATE_IGNORE(will ignore humidity and stay in normal state -- NO FLASHING LIGHTS), STATE_ON 
+#define PARAMETER_HUMIDITY_MODE                     HUM_MODE_DUTY      // HUM_MODE_DUTY (also disables light flashing), HUM_MODE_PID                  
 #define PARAMETER_LIGHTS_MODE                       LIGHT_TIMER_ON     // LIGHT_TIMER_ON, LIGHT_TIMER_OFF
 
 #define PARAMETER_MAX_ANALOG_OUTPUT                 (255)
