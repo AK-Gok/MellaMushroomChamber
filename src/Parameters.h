@@ -44,7 +44,7 @@
 #define PARAMETER_LIGHTS_FAULT_BREATHE_PERIOD_MS    (10000)
 #define PARAMETER_LIGHTS_HEARTBEAT_NORMAL_DELAY_MS  (1000)
 #define PARAMETER_LIGHTS_HEARTBEAT_FAULT_DELAY_MS   (100)
-#define PARAMETER_LIGHTS_HOURS_ON                   (16)  // Number of hours lights should be on
+#define PARAMETER_LIGHTS_HOURS_ON                   (3)  // Number of hours lights should be on
 
 #define PARAMETER_STEADYSTATE_FAULT_DELAY_SEC       (600)
 #define PARAMETER_STARTUP_DELAY_SEC                 (1800)
