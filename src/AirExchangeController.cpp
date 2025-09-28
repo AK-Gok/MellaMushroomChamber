@@ -47,7 +47,7 @@ static String GetStatusAsString(void)
 static uint16_t GetStatusTimeRemaining(void)
 {
    uint16_t cyclingDelay = (airExchangeCyclingDelayMs / MS_PER_SEC);
-   uint16_t secSinceLastCycle = ((millis() - lastCycleMillis) / MS_PER_SEC);
+   uint16_t secSinceLastCycle = ((millis() - lastCycleMillis) / MS_PER_SEC);  /// commented out when removing this unused state machine
 
    return (cyclingDelay - secSinceLastCycle);
 }

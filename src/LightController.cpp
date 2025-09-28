@@ -25,6 +25,7 @@ static uint32_t currentMillis = 0;
 static uint32_t onTime = (uint64_t)PARAMETER_LIGHTS_HOURS_ON * MIN_PER_HR * SEC_PER_MIN * MS_PER_SEC;    // ms on time
 static uint32_t offTime = (HRS_PER_DAY-(uint64_t)PARAMETER_LIGHTS_HOURS_ON) * MIN_PER_HR * SEC_PER_MIN * MS_PER_SEC;   // ms off time
 static LightState_t lightState = LIGHT_STATE_ON;  //start in ON state
+static uint32_t lastTransitionMillis = 0; // shared between UpdateLightState and GetStatusTimeRemaining
 
 
 void LightController_SetMode(LightMode_t mode)
@@ -73,26 +74,28 @@ static bool GetFaultHeartbeatLedState(void)
 
 // Update State based on Light Time and knob setting
 static void UpdateLightState(void) {
-   
-
-   if (Encoders_GetLightSetting()==0) {
-      currentMillis = 0;                 //reset timer to 0
-   }  
-   else if (lightState == LIGHT_STATE_OFF) {
-       if (currentMillis >= offTime) {
-           lightState = LIGHT_STATE_ON;
-           currentMillis = 0;
-           Logging_Verbose_1("Lights turned ON for %lu hrs", onTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
-       }
-       else{currentMillis = currentMillis + PARAMETER_APPLICATION_RUN_DELAY_MS;}
-   } 
-   else if (lightState == LIGHT_STATE_ON) {
-       if (currentMillis >= onTime) {
-           lightState = LIGHT_STATE_OFF;
-           currentMillis = 0;
-           Logging_Verbose_1("Lights turned OFF for %lu hrs", offTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
-       }
-       else{currentMillis = currentMillis + PARAMETER_APPLICATION_RUN_DELAY_MS;}
+   // lastTransitionMillis is now file scope
+   uint32_t now = millis();
+   if (Encoders_GetLightSetting() == 0) {
+      lastTransitionMillis = now;
+      if (lightState != LIGHT_STATE_OFF) {
+         lightState = LIGHT_STATE_OFF;
+         //Logging_Verbose("Lights forced OFF by knob");
+      }
+      return;
+   }
+   if (lightState == LIGHT_STATE_ON) {
+      if (now - lastTransitionMillis >= onTime) {
+         lightState = LIGHT_STATE_OFF;
+         lastTransitionMillis = now;
+         //Logging_Verbose_1("Lights turned OFF for %lu hrs", offTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
+      }
+   } else if (lightState == LIGHT_STATE_OFF) {
+      if (now - lastTransitionMillis >= offTime) {
+         lightState = LIGHT_STATE_ON;
+         lastTransitionMillis = now;
+        // Logging_Verbose_1("Lights turned ON for %lu hrs", onTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
+      }
    }
 }
 
@@ -103,15 +106,16 @@ static String GetStatusAsString(void)
 
 static uint16_t GetStatusTimeRemaining(void)
 {
-   uint32_t elapsed = currentMillis;
+   
+   // Use the same static variable as UpdateLightState
+   
+   uint32_t now = millis();
    uint32_t remaining = 0;
-
    if (lightState == LIGHT_STATE_ON) {
-         remaining = (onTime > elapsed) ? (onTime - elapsed) : 0;
+      remaining = (onTime > (now - lastTransitionMillis)) ? (onTime - (now - lastTransitionMillis)) : 0;
    } else {
-         remaining = (offTime > elapsed) ? (offTime - elapsed) : 0;
+      remaining = (offTime > (now - lastTransitionMillis)) ? (offTime - (now - lastTransitionMillis)) : 0;
    }
-
    return remaining / MS_PER_SEC;
 }
 
