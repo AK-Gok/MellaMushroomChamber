@@ -21,11 +21,12 @@ typedef enum {
 } LightState_t;
 
 
-static uint32_t currentMillis = 0;
 static uint32_t onTime = (uint64_t)PARAMETER_LIGHTS_HOURS_ON * MIN_PER_HR * SEC_PER_MIN * MS_PER_SEC;    // ms on time
 static uint32_t offTime = (HRS_PER_DAY-(uint64_t)PARAMETER_LIGHTS_HOURS_ON) * MIN_PER_HR * SEC_PER_MIN * MS_PER_SEC;   // ms off time
 static LightState_t lightState = LIGHT_STATE_ON;  //start in ON state
+
 static uint32_t lastTransitionMillis = 0; // shared between UpdateLightState and GetStatusTimeRemaining
+static int prevKnobValue = -1;
 
 
 void LightController_SetMode(LightMode_t mode)
@@ -74,29 +75,38 @@ static bool GetFaultHeartbeatLedState(void)
 
 // Update State based on Light Time and knob setting
 static void UpdateLightState(void) {
-   // lastTransitionMillis is now file scope
+   // prevKnobValue is now file scope
    uint32_t now = millis();
-   if (Encoders_GetLightSetting() == 0) {
+   int knobValue = Encoders_GetLightSetting();
+
+   if (knobValue == 0) {
       lastTransitionMillis = now;
       if (lightState != LIGHT_STATE_OFF) {
          lightState = LIGHT_STATE_OFF;
          //Logging_Verbose("Lights forced OFF by knob");
       }
-      return;
-   }
-   if (lightState == LIGHT_STATE_ON) {
-      if (now - lastTransitionMillis >= onTime) {
-         lightState = LIGHT_STATE_OFF;
-         lastTransitionMillis = now;
-         //Logging_Verbose_1("Lights turned OFF for %lu hrs", offTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
-      }
-   } else if (lightState == LIGHT_STATE_OFF) {
-      if (now - lastTransitionMillis >= offTime) {
+   } else {
+      // If knob was 0 and now >0, turn ON and restart timer
+      if (prevKnobValue == 0) {
          lightState = LIGHT_STATE_ON;
          lastTransitionMillis = now;
-        // Logging_Verbose_1("Lights turned ON for %lu hrs", onTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
+         //Logging_Verbose("Lights turned ON by knob change");
+      }
+      if (lightState == LIGHT_STATE_ON) {
+         if (now - lastTransitionMillis >= onTime) {
+            lightState = LIGHT_STATE_OFF;
+            lastTransitionMillis = now;
+            //Logging_Verbose_1("Lights turned OFF for %lu hrs", offTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
+         }
+      } else if (lightState == LIGHT_STATE_OFF) {
+         if (now - lastTransitionMillis >= offTime) {
+            lightState = LIGHT_STATE_ON;
+            lastTransitionMillis = now;
+            //Logging_Verbose_1("Lights turned ON for %lu hrs", onTime/MS_PER_SEC/SEC_PER_MIN/MIN_PER_HR);
+         }
       }
    }
+   prevKnobValue = knobValue;
 }
 
 static String GetStatusAsString(void)

@@ -5,13 +5,14 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#define PARAMETER_LOG_LEVEL                         LogLevel_Verbose  // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
+#define PARAMETER_LOG_LEVEL                         LogLevel_Info  // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
 // #define LIGHT_ENCODER_DIRECT
 
 // define high level control parameters
 #define PARAMETER_STATE_MODE                        STATE_IGNORE       // STATE_IGNORE(will ignore humidity and stay in normal state -- NO FLASHING LIGHTS), STATE_ON 
 #define PARAMETER_HUMIDITY_MODE                     HUM_MODE_DUTY      // HUM_MODE_DUTY (also disables light flashing), HUM_MODE_PID                  
 #define PARAMETER_LIGHTS_MODE                       LIGHT_TIMER_ON     // LIGHT_TIMER_ON, LIGHT_TIMER_OFF
+#define PARAMETER_LIGHTS_HOURS_ON                   (12)  // Number of hours lights should be on
 
 #define PARAMETER_MAX_ANALOG_OUTPUT                 (255)
 #define PARAMETER_MIN_ANALOG_OUTPUT                 (0)
@@ -44,7 +45,7 @@
 #define PARAMETER_LIGHTS_FAULT_BREATHE_PERIOD_MS    (10000)
 #define PARAMETER_LIGHTS_HEARTBEAT_NORMAL_DELAY_MS  (1000)
 #define PARAMETER_LIGHTS_HEARTBEAT_FAULT_DELAY_MS   (100)
-#define PARAMETER_LIGHTS_HOURS_ON                   (1)  // Number of hours lights should be on
+
 
 #define PARAMETER_STEADYSTATE_FAULT_DELAY_SEC       (600)
 #define PARAMETER_STARTUP_DELAY_SEC                 (1800)
