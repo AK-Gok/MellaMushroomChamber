@@ -5,6 +5,6 @@
 #ifndef MELLA_VERSION_H
 #define MELLA_VERSION_H
 
-#define MELLA_BUILD_VERSION "99.0.07"
+#define MELLA_BUILD_VERSION "99.0.11"
 
 #endif // MELLA_VERSION_H

@@ -20,9 +20,10 @@ typedef enum {
    LIGHT_STATE_ON
 } LightState_t;
 
-
-static uint32_t onTime = (uint64_t)PARAMETER_LIGHTS_HOURS_ON * MIN_PER_HR * SEC_PER_MIN * MS_PER_SEC;    // ms on time
-static uint32_t offTime = (HRS_PER_DAY-(uint64_t)PARAMETER_LIGHTS_HOURS_ON) * MIN_PER_HR * SEC_PER_MIN * MS_PER_SEC;   // ms off time
+// Use macro to ensure all math is done in 64 bits and prevent overflow
+#define HOURS_TO_MS(hours) ((uint32_t)(((uint64_t)(hours)) * 60ULL * 60ULL * 1000ULL))
+static const uint32_t onTime = HOURS_TO_MS(PARAMETER_LIGHTS_HOURS_ON);    // ms on time
+static const uint32_t offTime = HOURS_TO_MS(HRS_PER_DAY - PARAMETER_LIGHTS_HOURS_ON);   // ms off time
 static LightState_t lightState = LIGHT_STATE_ON;  //start in ON state
 
 static uint32_t lastTransitionMillis = 0; // shared between UpdateLightState and GetStatusTimeRemaining
@@ -114,13 +115,17 @@ static String GetStatusAsString(void)
    return (lightState == LIGHT_STATE_ON) ? "Enabled" : "Disabled";
 }
 
-static uint16_t GetStatusTimeRemaining(void)
+static uint32_t GetStatusTimeRemaining(void)
 {
    
    // Use the same static variable as UpdateLightState
    
    uint32_t now = millis();
    uint32_t remaining = 0;
+   int knobValue = Encoders_GetLightSetting();
+   if (knobValue == 0) {
+      return 99999; // special indicator Timer not running, light forced off
+   }
    if (lightState == LIGHT_STATE_ON) {
       remaining = (onTime > (now - lastTransitionMillis)) ? (onTime - (now - lastTransitionMillis)) : 0;
    } else {
@@ -185,7 +190,7 @@ void LightController_LogInfo(void)
    }
 
    Logging_Info_Data_1("%7li %%, ", map(instance._private.output, 0, PARAMETER_MAX_ANALOG_OUTPUT, 0, 100));
-   Logging_Info_Data_1("%5u sec, ", GetStatusTimeRemaining());
+   Logging_Info_Data_1("%7lu sec, ", GetStatusTimeRemaining());
    Logging_Info_Data("|, ");
 }
 
@@ -208,4 +213,13 @@ void LightController_Init(void)
    pinMode(LIGHT_OUTPUT_PIN, OUTPUT);
    pinMode(ON_BOARD_LED_PIN, OUTPUT);
    LightController_SetMode(LightMode_Normal);
+/*
+   // Debug: Log timing parameters and calculated times
+   Logging_Info_1("PARAMETER_LIGHTS_HOURS_ON: %lu", (unsigned long)PARAMETER_LIGHTS_HOURS_ON);
+   Logging_Info_1("HRS_PER_DAY: %lu", (unsigned long)HRS_PER_DAY);
+   Logging_Info_1("onTime (ms): %lu", (unsigned long)onTime);
+   Logging_Info_1("offTime (ms): %lu", (unsigned long)offTime);
+   Logging_Info_1("onTime (sec): %lu", (unsigned long)(onTime/1000));
+   Logging_Info_1("offTime (sec): %lu", (unsigned long)(offTime/1000));
+*/
 }
