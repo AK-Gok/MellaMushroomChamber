@@ -29,6 +29,10 @@ static LightState_t lightState = LIGHT_STATE_ON;  //start in ON state
 static uint32_t lastTransitionMillis = 0; // shared between UpdateLightState and GetStatusTimeRemaining
 static int prevKnobValue = -1;
 
+// Helper for drift-compensated millis. -- 10/5/25 using this function caused a crash within 24hrs
+static inline uint32_t driftedMillis() {
+   return (uint32_t)(millis() * PARAMETER_MILLIS_DRIFT_FACTOR);
+}
 
 void LightController_SetMode(LightMode_t mode)
 {
@@ -53,7 +57,7 @@ static void GetBrightnessFromKnob(void)
 static bool GetNormalHeartbeatLedState(void)
 {
    uint16_t sec = (millis() / MS_PER_SEC);
-
+   //uint16_t sec = (driftedMillis() / MS_PER_SEC);
    if(sec >= (lastHeartbeartSec + (PARAMETER_LIGHTS_HEARTBEAT_NORMAL_DELAY_MS / MS_PER_SEC)))
    {
       lastHeartbeartSec = sec;
@@ -65,7 +69,7 @@ static bool GetNormalHeartbeatLedState(void)
 static bool GetFaultHeartbeatLedState(void)
 {
    uint16_t sec = (millis() / MS_PER_SEC);
-
+   //uint16_t sec = (driftedMillis() / MS_PER_SEC);
    if(sec >= lastHeartbeartSec + (PARAMETER_LIGHTS_HEARTBEAT_FAULT_DELAY_MS / MS_PER_SEC))
    {
       lastHeartbeartSec = sec;

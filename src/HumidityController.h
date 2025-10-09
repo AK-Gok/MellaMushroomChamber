@@ -28,6 +28,12 @@ typedef enum {
    HUM_MODE_PID      // 1
  } HUM_mode_t; 
 
+ // Enum for humidifier device
+ typedef enum {
+   HUM_DEV_FAN,  // 0
+   HUM_DEV_FOG   // 1
+ } HUM_dev_t;
+
 bool HumidityController_ValueIsNormal(void);
 
 void HumidityController_LogHeader(void);

@@ -57,7 +57,7 @@ static void UpdateSetpointFromKnob(void)
           (ENCODER_MIN_POSITION + 1),
           ENCODER_MAX_POSITION,
           PARAMETER_HUMIDITY_MIN_SETPOINT,
-          PARAMETER_HUMIDITY_MAX_SETPOINT);
+          PARAMETER_HUMIDITY_MAX_SETPOINT );
    }
 }
 
@@ -79,7 +79,7 @@ static void ResetPid(void)
 {
    humidityPid.clear();
    humidityPid.configure(PARAMETER_HUMIDITY_PID_KP, PARAMETER_HUMIDITY_PID_KI, PARAMETER_HUMIDITY_PID_KD, (MS_PER_SEC / PARAMETER_APPLICATION_RUN_DELAY_MS), 8, false);
-   humidityPid.setOutputRange(PARAMETER_MIN_ANALOG_OUTPUT, PARAMETER_MAX_ANALOG_OUTPUT);
+   humidityPid.setOutputRange(PARAMETER_MIN_ANALOG_OUTPUT, PARAMETER_HUMIDITY_MAX_ANALOG_OUTPUT);
 
    if (humidityPid.err())
    {
@@ -96,7 +96,7 @@ static void ResetPid(void)
  */
 static void PreventPositiveIntegratorWindup(void)
 {
-   if ((instance._private.pidRequest == PARAMETER_MAX_ANALOG_OUTPUT) && (instance._private.setPoint < instance._private.sensorValue))
+   if ((instance._private.pidRequest == PARAMETER_HUMIDITY_MAX_ANALOG_OUTPUT) && (instance._private.setPoint < instance._private.sensorValue))
    {
       if (instance._private.integratorPositiveWindupCounter++ >= INTEGRATOR_WINDUP_DETECTION_COUNT_MAX)
       {

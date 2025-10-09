@@ -9,10 +9,13 @@
 // #define LIGHT_ENCODER_DIRECT
 
 // define high level control parameters
-#define PARAMETER_STATE_MODE                        STATE_IGNORE       // STATE_IGNORE(will ignore humidity and stay in normal state -- NO FLASHING LIGHTS), STATE_ON 
-#define PARAMETER_HUMIDITY_MODE                     HUM_MODE_DUTY      // HUM_MODE_DUTY (also disables light flashing), HUM_MODE_PID                  
-#define PARAMETER_LIGHTS_MODE                       LIGHT_TIMER_ON     // LIGHT_TIMER_ON, LIGHT_TIMER_OFF
-#define PARAMETER_LIGHTS_HOURS_ON                   (12)  // Number of hours lights should be on
+#define PARAMETER_STATE_MODE                        STATE_IGNORE      // STATE_IGNORE(will ignore humidity and stay in normal state -- NO FLASHING LIGHTS), STATE_ON (factory shipped settings)
+#define PARAMETER_HUMIDITY_MODE                     HUM_MODE_PID      // HUM_MODE_DUTY (also disables light flashing), HUM_MODE_PID                  
+#define PARAMETER_HUMIDITY_DEVICE                   HUM_DEV_FAN       // HUM_DEV_FAN, HUM_DEV_FOG ; FAN uses PWM, FOG uses High/Low (FOGGER in testing, for future release) 
+#define PARAMETER_HUMIDITY_MAX_DUTY_CYCLE           (70)              // integer 0-100% duty cycle for humidifier when in HUM_MODE_DUTY  
+#define PARAMETER_HUMIDITY_WIND_REGULATOR           (float(0.42))     // float between 0-1. Lower the max humidifier fan speed to prevent wind burn - target 5-6v
+#define PARAMETER_LIGHTS_MODE                       LIGHT_TIMER_ON    // LIGHT_TIMER_ON, LIGHT_TIMER_OFF
+#define PARAMETER_LIGHTS_HOURS_ON                   (12)              // integer 1-24 Number of hours lights should be on
 
 #define PARAMETER_MAX_ANALOG_OUTPUT                 (255)
 #define PARAMETER_MIN_ANALOG_OUTPUT                 (0)
@@ -27,8 +30,9 @@
 #define PARAMETER_HUMIDITY_PID_KD                   (float(0.001))
 #define PARAMETER_HUMIDITY_ERROR_OFFSET             (12)
 #define PARAMETER_HUMIDITY_MINIMUM_OUTPUT           (2 * PARAMETER_FAN_STALL_SPEED) 
+#define PARAMETER_HUMIDITY_MAX_ANALOG_OUTPUT        (static_cast<int>(PARAMETER_MAX_ANALOG_OUTPUT * PARAMETER_HUMIDITY_WIND_REGULATOR)) //Limit the max fan speed to reduce wind burn
 #define PARAMETER_HUMIDITY_PERIOD_SEC               ((uint32_t)600) //600sec = 10min periods for duty cycle calculation        
-#define PARAMETER_HUMIDITY_MAX_DUTY_CYCLE           (70) // 70% duty cylce max          
+        
 
 #define PARAMETER_AIR_EXCHANGE_MIN_SETPOINT         (0)
 #define PARAMETER_AIR_EXCHANGE_MAX_SETPOINT         (100)
@@ -45,6 +49,7 @@
 #define PARAMETER_LIGHTS_FAULT_BREATHE_PERIOD_MS    (10000)
 #define PARAMETER_LIGHTS_HEARTBEAT_NORMAL_DELAY_MS  (1000)
 #define PARAMETER_LIGHTS_HEARTBEAT_FAULT_DELAY_MS   (100)
+#define PARAMETER_MILLIS_DRIFT_FACTOR               (float(0.997)) // Adjust based on your measurement of drift (varies with Temperature)
 
 
 #define PARAMETER_STEADYSTATE_FAULT_DELAY_SEC       (600)
