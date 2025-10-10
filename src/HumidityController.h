@@ -25,7 +25,7 @@ typedef struct {
 // Enum for humidifier Modes
 typedef enum {
    HUM_MODE_DUTY,  // 0
-   HUM_MODE_PID      // 1
+   HUM_MODE_SENSOR // 1
  } HUM_mode_t; 
 
  // Enum for humidifier device

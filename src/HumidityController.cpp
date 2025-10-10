@@ -179,44 +179,63 @@ static void CalculateFanOutput(void)
 {
    //IF in DUTY CYCLE MODE check what part of cycle you are in
    if(PARAMETER_HUMIDITY_MODE  ==  HUM_MODE_DUTY ){
-      if(humState == HUM_STATE_ON)
-      {
-         digitalWrite(HUMIDITY_OUTPUT_PIN, HIGH);
-      }
-      else
-      {
-         digitalWrite(HUMIDITY_OUTPUT_PIN, LOW);
+     if(PARAMETER_HUMIDITY_DEVICE  == HUM_DEV_FOG){
+      // If in FOG mode just turn on/off the output pin
+         if(humState == HUM_STATE_ON)
+         {
+            digitalWrite(HUMIDITY_OUTPUT_PIN, HIGH);
+         }
+         else
+         {
+            digitalWrite(HUMIDITY_OUTPUT_PIN, LOW);
+         }
+      }  
+      //If in FAN mode use PWM to set fan speed
+      else { 
+         if(humState == HUM_STATE_ON)
+         {
+            instance._private.outputValue =  PARAMETER_HUMIDITY_MAX_ANALOG_OUTPUT;
+         }
+         else
+         {
+            instance._private.outputValue = 0;
+         }
+         analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
       }
    }
    
-   // else Shipped configuration
+   // else SENSOR Modes
    else {  
-      instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
+      //SHIPPED Configuration using PID control with sensor feedback
+      if(PARAMETER_HUMIDITY_DEVICE == HUM_DEV_FAN){
+         instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
 
-      if (0 == instance._private.setPoint)
-      {
-         ResetPid();
-         instance._private.outputValue = 0;
-      }
-      else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
-      {
-         instance._private.outputValue = PARAMETER_MIN_ANALOG_OUTPUT;
-         PreventNegativeIntegratorWindup();
-      }
-      else
-      {
-         instance._private.outputValue = instance._private.pidRequest;
-         PreventPositiveIntegratorWindup();
-      }
+         if (0 == instance._private.setPoint)
+         {
+            ResetPid();
+            instance._private.outputValue = 0;
+         }
+         else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
+         {
+            instance._private.outputValue = PARAMETER_MIN_ANALOG_OUTPUT;
+            PreventNegativeIntegratorWindup();
+         }
+         else
+         {
+            instance._private.outputValue = instance._private.pidRequest;
+            PreventPositiveIntegratorWindup();
+         }
 
-      analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
-   } 
+         analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
+      }
+      } 
+      // FOGGER MODE with SENSOR feedback - NOT SUPPORTED YET, use duty cycle mode instead
 }
 
 static void SetupPwmOutput(void)
 {
    //set up PWM if in PWM Mode
-   if(PARAMETER_HUMIDITY_MODE  == HUM_MODE_PID){
+   if(PARAMETER_HUMIDITY_DEVICE  == HUM_DEV_FAN){
       // Configure Timer 3
       TCCR3A = 0b00000001; // Phase Correct PWM Mode, 8-bit, TOP = 0xFF
       TCCR3B = 0b00000100; // Divide I/O clock by 256 (8MHz / 256 = 31,250 Hz)
