@@ -16,7 +16,7 @@ Please review both license files before using any content from this repository.
 
 ## UPDATES
 
-### Version 99.0.14 (Released October 11, 2025)
+### Version 99.1.14 (Released October 11, 2025)
    These are first round software updates without modification to any hardware. A section was added to the top of the Parameters.h file to give you high level controls for new features.  Below are explanations of the new features and the parameters in this file to control them.
 
    LIGHTING: 
@@ -35,7 +35,7 @@ Please review both license files before using any content from this repository.
          PARAMETER_HUMIDITY_WIND_REGULATOR - Lowers the max speed of a FAN device in both SENSOR mode and Duty Cycle Mode.  This float is the fraction of the true max pwm, i.e. 0.42 is 42% of the max analog output. Change this to 1 if you would like the fan to run at full blast as shipped. (default 0.42)
 
    BUG FIXES: 
-      Serial communication stopped when the AirExchangeController.cpp duty cycle period ended, possibly because of a conflict with the timer.  I switched this to be based on millis() and have not had issues with serial communication.  By default, the system uses a 100% duty cycle anyway.
+      Serial communication stopped when the `AirExchangeController.cpp` duty cycle period ended, possibly because of a conflict with the timer.  I switched this to be based on millis() and have not had issues with serial communication.  By default, the system uses a 100% duty cycle anyway.
 
    KNOWN ISSUES:  
       There is a drift in the 24hr lighting timer which will vary with the temperature of the crystal in the microcontroller.  Experimentally, I measured about 30 minutes over 7 days, future updates may include use of the external oscillator to address this.  
