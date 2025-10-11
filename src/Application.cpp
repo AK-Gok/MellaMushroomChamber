@@ -13,7 +13,19 @@ static Application_t instance;
 
 void Application_Tick(void)
 {
-   Timers_Run();
+   static unsigned long lastRun = 0;
+   static unsigned long lastLog = 0;
+   unsigned long now = millis();
+
+   if (now - lastRun >= PARAMETER_APPLICATION_RUN_DELAY_MS) {
+      lastRun = now;
+      Application_Run();
+   }
+
+   if (now - lastLog >= PARAMETER_APPLICATION_LOG_DELAY_MS) {
+      lastLog = now;
+      Application_Log();
+   }
 }
 
 static void LogVersionHeader(void)

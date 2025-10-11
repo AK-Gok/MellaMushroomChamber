@@ -21,7 +21,6 @@ static void FanCycleEnable(void)
    instance._private.enabled = true;
    lastCycleMillis = millis();
    airExchangeCyclingDelayMs = PARAMETER_AIR_EXCHANGE_FAN_ON_DURATION_SEC * MS_PER_SEC;
-   Timers_SetupOneShotTimer(TimerId_AirExchangeCycling, FanCycleDisable, airExchangeCyclingDelayMs);
    Logging_Verbose_1("Enabling AX Fan for %lu sec", (airExchangeCyclingDelayMs/1000));
 }
 
@@ -30,7 +29,6 @@ static void FanCycleDisable(void)
    instance._private.enabled = false;
    lastCycleMillis = millis();
    airExchangeCyclingDelayMs = PARAMETER_AIR_EXCHANGE_FAN_OFF_DURATION_SEC * MS_PER_SEC;
-   Timers_SetupOneShotTimer(TimerId_AirExchangeCycling, FanCycleEnable, airExchangeCyclingDelayMs);
    Logging_Verbose_1("Disabling AX Fan for %lu", (airExchangeCyclingDelayMs/1000));
 }
 
@@ -47,7 +45,7 @@ static String GetStatusAsString(void)
 static uint16_t GetStatusTimeRemaining(void)
 {
    uint16_t cyclingDelay = (airExchangeCyclingDelayMs / MS_PER_SEC);
-   uint16_t secSinceLastCycle = ((millis() - lastCycleMillis) / MS_PER_SEC);
+   uint16_t secSinceLastCycle = ((millis() - lastCycleMillis) / MS_PER_SEC);  /// commented out when removing this unused state machine
 
    return (cyclingDelay - secSinceLastCycle);
 }
@@ -139,6 +137,21 @@ void AirExchangeController_LogInfo(void)
 void AirExchangeController_Run(void)
 {
    UpdateSetpointFromKnob();
+
+   // Handle ON/OFF cycling using millis()
+   uint32_t now = millis();
+   if (instance._private.enabled) {
+      // Fan is ON
+      if (now - lastCycleMillis >= airExchangeCyclingDelayMs) {
+         FanCycleDisable();
+      }
+   } else {
+      // Fan is OFF
+      if (now - lastCycleMillis >= airExchangeCyclingDelayMs) {
+         FanCycleEnable();
+      }
+   }
+
    RampOutput();
 }
 
@@ -154,5 +167,6 @@ static void SetupPwmOutput(void)
 void AirExchangeController_Init(void)
 {
    SetupPwmOutput();
+   airExchangeCyclingDelayMs = PARAMETER_AIR_EXCHANGE_FAN_ON_DURATION_SEC * MS_PER_SEC;
    FanCycleEnable();
 }

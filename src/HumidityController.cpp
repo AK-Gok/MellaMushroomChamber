@@ -12,15 +12,28 @@
 #include "PinDefinitions.h"
 #include <FastPID.h>
 #include "Encoders.h"
+#include "Timers.h"
 #include "Logging.h"
 
 #define FULL_HUMIDITY (100)
 #define INTEGRATOR_WINDUP_DETECTION_SECONDS (15)
 #define INTEGRATOR_WINDUP_DETECTION_COUNT_MAX ((INTEGRATOR_WINDUP_DETECTION_SECONDS * MS_PER_SEC) / PARAMETER_APPLICATION_RUN_DELAY_MS)
-#define SETPOINT_OVERRUNN_COUNT_MAX ((PARAMETER_HUMIDITY_OVERRUN_SEC * MS_PER_SEC) / PARAMETER_APPLICATION_RUN_DELAY_MS) // new counter to prevent oscillation
+
+
+// Define states for the fan
+typedef enum {
+   HUM_STATE_OFF,
+   HUM_STATE_ON
+} HumState_t;
 
 static HumidityController_t instance;
 static FastPID humidityPid(PARAMETER_HUMIDITY_PID_KP, PARAMETER_HUMIDITY_PID_KI, PARAMETER_HUMIDITY_PID_KD, (MS_PER_SEC / PARAMETER_APPLICATION_RUN_DELAY_MS), 8, false);
+static uint32_t lastCycleMillis = 0;
+static HumState_t humState = HUM_STATE_OFF;  //start in OFF state 
+static uint32_t currentMillis = 0;
+static uint32_t onTime = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC;    // initialize at 50% duty cycle
+static uint32_t offTime = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC;   // initialize at 50% duty cycle
+static uint32_t totalCycleTime = PARAMETER_HUMIDITY_PERIOD_SEC * MS_PER_SEC;  
 
 static void UpdateSetpointFromKnob(void)
 {
@@ -30,6 +43,14 @@ static void UpdateSetpointFromKnob(void)
    {
       instance._private.setPoint = 0;
    }
+   else if (PARAMETER_HUMIDITY_MODE  ==  HUM_MODE_DUTY ){
+      instance._private.setPoint = map(
+         knobValue,
+         (ENCODER_MIN_POSITION + 1),
+         ENCODER_MAX_POSITION,
+         1,
+         PARAMETER_HUMIDITY_MAX_DUTY_CYCLE); // 1-100% duty cycle
+   }
    else
    {
       instance._private.setPoint = map(
@@ -37,7 +58,7 @@ static void UpdateSetpointFromKnob(void)
           (ENCODER_MIN_POSITION + 1),
           ENCODER_MAX_POSITION,
           PARAMETER_HUMIDITY_MIN_SETPOINT,
-          PARAMETER_HUMIDITY_MAX_SETPOINT);
+          PARAMETER_HUMIDITY_MAX_SETPOINT );
    }
 }
 
@@ -45,13 +66,21 @@ static void UpdateReadingFromSensor(void)
 {
    instance._private.sensor.reset();
    instance._private.sensorValue = instance._private.sensor.readHumidity();
+   instance._private.tempValue = instance._private.sensor.readTemperature();
+   instance._private.heatStatus = instance._private.sensor.isHeaterEnabled();
+
+}
+
+static String GetStatusAsString(void)
+{
+   return (instance._private.heatStatus == true) ? "Enabled" : "Disabled";
 }
 
 static void ResetPid(void)
 {
    humidityPid.clear();
    humidityPid.configure(PARAMETER_HUMIDITY_PID_KP, PARAMETER_HUMIDITY_PID_KI, PARAMETER_HUMIDITY_PID_KD, (MS_PER_SEC / PARAMETER_APPLICATION_RUN_DELAY_MS), 8, false);
-   humidityPid.setOutputRange(PARAMETER_MIN_ANALOG_RH_OUTPUT, PARAMETER_MAX_ANALOG_OUTPUT);
+   humidityPid.setOutputRange(PARAMETER_MIN_ANALOG_OUTPUT, PARAMETER_HUMIDITY_MAX_ANALOG_OUTPUT);
 
    if (humidityPid.err())
    {
@@ -68,7 +97,7 @@ static void ResetPid(void)
  */
 static void PreventPositiveIntegratorWindup(void)
 {
-   if ((instance._private.pidRequest == PARAMETER_MAX_ANALOG_OUTPUT) && (instance._private.setPoint < instance._private.sensorValue))
+   if ((instance._private.pidRequest == PARAMETER_HUMIDITY_MAX_ANALOG_OUTPUT) && (instance._private.setPoint < instance._private.sensorValue))
    {
       if (instance._private.integratorPositiveWindupCounter++ >= INTEGRATOR_WINDUP_DETECTION_COUNT_MAX)
       {
@@ -105,70 +134,114 @@ static void PreventNegativeIntegratorWindup(void)
    }
 }
 
+ // Calculate new ON and OFF durations based on Duty Cycle
+ static void UpdateHumState(void) {
+   onTime =  (uint32_t)((float)(totalCycleTime) * (instance._private.setPoint / 100.0));
+   offTime = totalCycleTime - onTime;
+
+   if (humState == HUM_STATE_OFF) {
+       if (currentMillis >= offTime) {
+           humState = HUM_STATE_ON;
+           currentMillis = 0;
+           Logging_Verbose_1("Humidifier turned ON for %lu sec", onTime/MS_PER_SEC);
+       }
+       else{currentMillis = currentMillis + PARAMETER_APPLICATION_RUN_DELAY_MS;}
+   } 
+   else if (humState == HUM_STATE_ON) {
+       if (currentMillis >= onTime) {
+           humState = HUM_STATE_OFF;
+           currentMillis = 0;
+           Logging_Verbose_1("Humidifier turned OFF for %lu sec", offTime/MS_PER_SEC);
+       }
+       else{currentMillis = currentMillis + PARAMETER_APPLICATION_RUN_DELAY_MS;}
+   }
+}
+
+static String GetStatusAsString2(void)
+{
+   return (humState == HUM_STATE_ON) ? "Enabled" : "Disabled";
+}
+
+static uint16_t GetStatusTimeRemaining(void)
+{
+   uint32_t elapsed = currentMillis;
+   uint32_t remaining = 0;
+
+   if (humState == HUM_STATE_ON) {
+         remaining = (onTime > elapsed) ? (onTime - elapsed) : 0;
+   } else {
+         remaining = (offTime > elapsed) ? (offTime - elapsed) : 0;
+   }
+
+   return remaining / MS_PER_SEC;
+}
+
 static void CalculateFanOutput(void)
 {
-   //NM 2025.03.10 adding a bypass fan shut down if RH over set point.. also changed the min output to work with fogger
-   if (instance._private.sensorValue > instance._private.setPoint) //new IF statement
-   {
-      if(instance._private.overSetPointCounter > SETPOINT_OVERRUNN_COUNT_MAX)
-      {
-         // ResetPid();
-         instance._private.outputValue = 0;
-         instance._private.overSetPointCounter = 0;
-         instance._private.underSetPointCounter = 0;
+   //IF in DUTY CYCLE MODE check what part of cycle you are in
+   if(PARAMETER_HUMIDITY_MODE  ==  HUM_MODE_DUTY ){
+     if(PARAMETER_HUMIDITY_DEVICE  == HUM_DEV_FOG){
+      // If in FOG mode just turn on/off the output pin
+         if(humState == HUM_STATE_ON)
+         {
+            digitalWrite(HUMIDITY_OUTPUT_PIN, HIGH);
+         }
+         else
+         {
+            digitalWrite(HUMIDITY_OUTPUT_PIN, LOW);
+         }
+      }  
+      //If in FAN mode use PWM to set fan speed
+      else { 
+         if(humState == HUM_STATE_ON)
+         {
+            instance._private.outputValue =  PARAMETER_HUMIDITY_MAX_ANALOG_OUTPUT;
+         }
+         else
+         {
+            instance._private.outputValue = 0;
+         }
+         analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
       }
-      else 
-      { 
-         instance._private.overSetPointCounter++;
-      } 
    }
-   else
-   {
-      if (instance._private.underSetPointCounter > SETPOINT_OVERRUNN_COUNT_MAX)
-      {
-         instance._private.outputValue = PARAMETER_MAX_ANALOG_OUTPUT;
-         instance._private.overSetPointCounter = 0;
-      }
-      else
-      {
-         instance._private.underSetPointCounter++;
-      }
-   }
-/**  
- * Update 2025.03.14 NM 
- * Commented out PID section as we are just turning this on and off full power or zero power
- * This section alread used PARAMETER_MIN_ANALOG_RH_OUTPUT so it was just 255 or 0
- * 
-   else
-   {
-      instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
+   
+   // else SENSOR Modes
+   else {  
+      //SHIPPED Configuration using PID control with sensor feedback
+      if(PARAMETER_HUMIDITY_DEVICE == HUM_DEV_FAN){
+         instance._private.pidRequest = humidityPid.step(instance._private.setPoint, instance._private.sensorValue);
 
-      if (0 == instance._private.setPoint)
-      {
-         ResetPid();
-         instance._private.outputValue = 0;
+         if (0 == instance._private.setPoint)
+         {
+            ResetPid();
+            instance._private.outputValue = 0;
+         }
+         else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
+         {
+            instance._private.outputValue = PARAMETER_MIN_ANALOG_OUTPUT;
+            PreventNegativeIntegratorWindup();
+         }
+         else
+         {
+            instance._private.outputValue = instance._private.pidRequest;
+            PreventPositiveIntegratorWindup();
+         }
+
+         analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
       }
-      else if (instance._private.pidRequest <= PARAMETER_HUMIDITY_MINIMUM_OUTPUT)
-      {
-         instance._private.outputValue = PARAMETER_MIN_ANALOG_RH_OUTPUT;
-         PreventNegativeIntegratorWindup();
-      }
-      else
-      {
-         instance._private.outputValue = instance._private.pidRequest;
-         PreventPositiveIntegratorWindup();
-      }
-   }   
-*/
-   analogWrite(HUMIDITY_OUTPUT_PIN, instance._private.outputValue);
+      } 
+      // FOGGER MODE with SENSOR feedback - NOT SUPPORTED YET, use duty cycle mode instead
 }
 
 static void SetupPwmOutput(void)
 {
-   // Configure Timer 3
-   TCCR3A = 0b00000001; // Phase Correct PWM Mode, 8-bit, TOP = 0xFF
-   TCCR3B = 0b00000100; // Divide I/O clock by 256 (8MHz / 256 = 31,250 Hz)
-
+   //set up PWM if in PWM Mode
+   if(PARAMETER_HUMIDITY_DEVICE  == HUM_DEV_FAN){
+      // Configure Timer 3
+      TCCR3A = 0b00000001; // Phase Correct PWM Mode, 8-bit, TOP = 0xFF
+      TCCR3B = 0b00000100; // Divide I/O clock by 256 (8MHz / 256 = 31,250 Hz)
+   }
+   //Either way set up output pin
    pinMode(HUMIDITY_OUTPUT_PIN, OUTPUT);
 }
 
@@ -192,6 +265,11 @@ void HumidityController_LogHeader(void)
 {
    Logging_Info_Data("RH Setting, ");
    Logging_Info_Data("RH Read, ");
+   Logging_Info_Data("F Read, ");
+   Logging_Info_Data("SHT31 Heater, ");
+   Logging_Info_Data("Duty Status, ");
+   Logging_Info_Data("Status Remain, ");
+   //Logging_Info_Data("Uptime, ");
    Logging_Info_Data("RH Output, ");
    Logging_Info_Data("RH PID Out, ");
    Logging_Info_Data("RH -Set, ");
@@ -205,7 +283,12 @@ void HumidityController_LogInfo(void)
 {
    Logging_Info_Data_1("%6d %%RH, ", int(instance._private.setPoint));
    Logging_Info_Data_1("%3d %%RH, ", int(instance._private.sensorValue));
-   Logging_Info_Data_1("%3d Fan Command NM2, ", instance._private.outputValue);
+   Logging_Info_Data_1("%3d F, ", int(instance._private.tempValue));
+   Logging_Info_Data_1("%9s, ", GetStatusAsString().c_str());
+   Logging_Info_Data_1("%9s, ", GetStatusAsString2().c_str());
+   Logging_Info_Data_1("%5u sec, ", GetStatusTimeRemaining());
+   //Logging_Info_Data_1("%6lu ms, ", millis());   // all references to millis were removed, this was causing timer issues and the system would freeze
+   Logging_Info_Data_1("%3d Fan Command, ", instance._private.outputValue);
    Logging_Info_Data_1("%3d PID Output,", instance._private.pidRequest);
    Logging_Info_Data_1("%3d -Set Count,", instance._private.underSetPointCounter);
    Logging_Info_Data_1("%3d +Set Count,", instance._private.overSetPointCounter);
@@ -218,6 +301,7 @@ void HumidityController_Run(void)
 {
    UpdateSetpointFromKnob();
    UpdateReadingFromSensor();
+   if(PARAMETER_HUMIDITY_MODE  ==  HUM_MODE_DUTY ){UpdateHumState();}
    CalculateFanOutput();
 }
 
@@ -226,6 +310,8 @@ void HumidityController_Init(void)
    SetupPwmOutput();
    SetupHumiditySensor();
    ResetPid();
+   humState = HUM_STATE_ON;     // Start in ON state
+   currentMillis = 0;
    instance._private.integratorNegativeWindupCounter = 0;
    instance._private.integratorPositiveWindupCounter = 0;
    instance._private.underSetPointCounter = 0;

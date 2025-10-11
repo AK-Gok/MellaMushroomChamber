@@ -11,6 +11,9 @@ typedef struct {
    struct {
       double setPoint;
       double sensorValue;
+      double tempValue;
+      bool heatStatus;
+      bool enabled;
       Adafruit_SHT31 sensor;
       int16_t pidRequest;
       int16_t outputValue;
@@ -20,6 +23,18 @@ typedef struct {
       uint16_t underSetPointCounter;
    } _private;
 } HumidityController_t;
+
+// Enum for humidifier Modes
+typedef enum {
+   HUM_MODE_DUTY,  // 0
+   HUM_MODE_SENSOR // 1
+ } HUM_mode_t; 
+
+ // Enum for humidifier device
+ typedef enum {
+   HUM_DEV_FAN,  // 0
+   HUM_DEV_FOG   // 1
+ } HUM_dev_t;
 
 bool HumidityController_ValueIsNormal(void);
 

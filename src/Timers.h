@@ -11,6 +11,7 @@ typedef enum {
    TimerId_Application,
    TimerId_Logging,
    TimerId_AirExchangeCycling,
+   TimerID_HumidityCycle,
    TimerId_Max,
 } TimerId_t;
 
