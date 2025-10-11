@@ -1,8 +1,5 @@
 /*
   Copyright (c) 2022 FirstBuild
-  NM 2025.03.10 update:
-   1. PARAMETER_MIN_ANALOG_OUTPUT to PARAMETER_MIN_ANALOG_RH_OUTPUT in 3 locations to create a min output that will support a fogger -- this will just keep the fans always going at 170... we need a way to shut them off as well
-   2. Updated CalculateFanOutput(void) to bypass PID if over RH
 */
 
 #include "HumidityController.h"
@@ -120,7 +117,7 @@ static void PreventPositiveIntegratorWindup(void)
  */
 static void PreventNegativeIntegratorWindup(void)
 {
-   if ((instance._private.pidRequest == PARAMETER_MIN_ANALOG_RH_OUTPUT) && (instance._private.setPoint > instance._private.sensorValue))
+   if ((instance._private.pidRequest == PARAMETER_MIN_ANALOG_OUTPUT) && (instance._private.setPoint > instance._private.sensorValue))
    {
       if (instance._private.integratorNegativeWindupCounter++ >= INTEGRATOR_WINDUP_DETECTION_COUNT_MAX)
       {
@@ -267,13 +264,11 @@ void HumidityController_LogHeader(void)
    Logging_Info_Data("RH Read, ");
    Logging_Info_Data("F Read, ");
    Logging_Info_Data("SHT31 Heater, ");
-   Logging_Info_Data("Duty Status, ");
+   Logging_Info_Data("Fogger Status, ");
    Logging_Info_Data("Status Remain, ");
    //Logging_Info_Data("Uptime, ");
    Logging_Info_Data("RH Output, ");
    Logging_Info_Data("RH PID Out, ");
-   Logging_Info_Data("RH -Set, ");
-   Logging_Info_Data("RH +Set, ");
    Logging_Info_Data("RH -ISat, ");
    Logging_Info_Data("RH +ISat, ");
    Logging_Info_Data("|, ");
@@ -290,8 +285,6 @@ void HumidityController_LogInfo(void)
    //Logging_Info_Data_1("%6lu ms, ", millis());   // all references to millis were removed, this was causing timer issues and the system would freeze
    Logging_Info_Data_1("%3d Fan Command, ", instance._private.outputValue);
    Logging_Info_Data_1("%3d PID Output,", instance._private.pidRequest);
-   Logging_Info_Data_1("%3d -Set Count,", instance._private.underSetPointCounter);
-   Logging_Info_Data_1("%3d +Set Count,", instance._private.overSetPointCounter);
    Logging_Info_Data_1("%3d -ISat Count, ", instance._private.integratorNegativeWindupCounter);
    Logging_Info_Data_1("%3d +ISat Count, ", instance._private.integratorPositiveWindupCounter);
    Logging_Info_Data("|, ");
@@ -314,8 +307,6 @@ void HumidityController_Init(void)
    currentMillis = 0;
    instance._private.integratorNegativeWindupCounter = 0;
    instance._private.integratorPositiveWindupCounter = 0;
-   instance._private.underSetPointCounter = 0;
-   instance._private.overSetPointCounter = 0;
    instance._private.pidRequest = 0;
    instance._private.outputValue = 0;
 }
