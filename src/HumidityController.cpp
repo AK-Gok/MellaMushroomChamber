@@ -266,7 +266,7 @@ void HumidityController_LogHeader(void)
    Logging_Info_Data("RH Read, ");
    Logging_Info_Data("F Read, ");
    Logging_Info_Data("SHT31 Heater, ");
-   Logging_Info_Data("Fogger Status, ");
+   Logging_Info_Data("Duty Status, ");
    Logging_Info_Data("Status Remain, ");
    //Logging_Info_Data("Uptime, ");
    Logging_Info_Data("RH Output, ");

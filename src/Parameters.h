@@ -12,7 +12,7 @@
 #define PARAMETER_LOG_LEVEL                         LogLevel_Info     // LogLevel_Debug, LogLevel_Verbose, LogLevel_Info, LogLevel_Off
 
 #define PARAMETER_STATE_MODE                        STATE_IGNORE      // STATE_IGNORE, STATE_ON | STATE_IGNORE(will ignore humidity and stay in normal state -- NO FLASHING LIGHTS), STATE_ON (factory shipped settings)
-#define PARAMETER_HUMIDITY_MODE                     HUM_MODE_DUTY     // HUM_MODE_DUTY, HUM_MODE_SENSOR | HUM_MODE_DUTY cycles humidiier on and off, Knob Value = Duty Cycle (also disables light flashing), HUM_MODE_SENSOR (uses SHT31 sensor to control humidity) 
+#define PARAMETER_HUMIDITY_MODE                     HUM_MODE_SENSOR    // HUM_MODE_DUTY, HUM_MODE_SENSOR | HUM_MODE_DUTY cycles humidiier on and off, Knob Value = Duty Cycle (also disables light flashing), HUM_MODE_SENSOR (uses SHT31 sensor to control humidity) 
 #define PARAMETER_HUMIDITY_DEVICE                   HUM_DEV_FAN       // HUM_DEV_FAN, HUM_DEV_FOG | FAN configures output pin for PWM, FOG configures pin to be High/Low, not yet supported with HUM_MODE_SENSOR (FOGGER in testing, for future release) 
 #define PARAMETER_HUMIDITY_MAX_DUTY_CYCLE           (70)              // integer 0-100 | % duty cycle for humidifier when in HUM_MODE_DUTY  
 #define PARAMETER_HUMIDITY_WIND_REGULATOR           (float(0.42))     // float between 0-1 | Lower the max humidifier fan speed to prevent wind burn (my target 5-6v provided equal humidity with less wind burn)
