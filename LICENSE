@@ -1,5 +1,21 @@
-Copyright (c) 2024 FirstBuild
+Copyright (c) 2025 AK-GOK
 
-FirstBuild and its parent company GE Appliances, a Haier company, agree to not pursue any claims solely related to noncommercial personal use, or non-profit educational use, of the Mella Smart Mushroom Fruiting Chamber designs, software or other related information published on this site.  By using this information, you acknowledge that the information is being provided "as-is," without any representation or warranty, express or implied as to its accuracy or completeness, and you assume any responsibility resulting from its use by you.  You agree not to sue FirstBuild or its parent for any cause related to the information or your use of this information.
+This repository is a fork of the \"Mella Smart Mushroom Fruiting Chamber\" project, originally created by FirstBuild.
 
-This covenant does not extend to any sales or transfer of products produced using this information, or the information itself, for commercial gain.  We reserve all available actions under our intellectual property rights, including patent rights, against any commercial use or exploitation of this information.
+The project is under a dual-license structure:
+
+1.  **Original Content:** All content originating from the FirstBuild repository is governed by its original license, which is included in the `LICENSE-FIRSTBUILD.txt` file. That license permits noncommercial personal use and non-profit educational use only.
+
+2.  **New Contributions:** All new additions, modifications, and original works created for this fork by AK-GOK are licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
+
+This means you are free to share and adapt the new contributions for any non-commercial purpose, as long as you give appropriate credit.
+
+--------------------------------------------------------------------------------
+
+This work is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/4.0/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+--------------------------------------------------------------------------------
+
+### Warranty Disclaimer
+
+Consistent with the original license, all information and contributions in this repository are provided \"AS-IS\" without any representation or warranty, express or implied, as to their accuracy or completeness. By using this information, you assume any and all responsibility and liability resulting from its use.
