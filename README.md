@@ -20,25 +20,25 @@ Please review both license files before using any content from this repository.
    These are first round software updates without modification to any hardware. A section was added to the top of the Parameters.h file to give you high level controls for new features.  Below are explanations of the new features and the parameters in this file to control them.
 
    LIGHTING: 
-      A Timer was added to turn on an off the lights within a 24hr period.  The timer starts or when the lights knob it turned from zero to any setting. The knob setting still controls the brightness only. A parameter controls if the abnormal state flashing lights will occur.
+      A Timer was added to turn on an off the lights within a 24hr period.  The timer starts or when the lights knob it turned from zero to any setting. The knob setting still controls the brightness only. You can also disable the flashing light mode when the humidity setting cannot be reached.
       
-         PARAMETER_LIGHTS_MODE - will enable or disable this feature (default: Enabled)
+         PARAMETER_LIGHTS_MODE - will enable or disable the timer (default: Enabled)
          PARAMETER_LIGHTS_HOURS_ON - controls the number of hours the light will remain on before turning off for the rest of the 24hr period (default: 12 hours)
-         PARAMETER_STATE_MODE - allows the system to ignore an abnormal humidity condition and avoid flashing the lights (default: IGNORE)
+         PARAMETER_STATE_MODE - allows the system to ignore abnormal humidity conditions and avoid flashing the lights (default: IGNORE)
 
    HUMIDITY: 
-      This is the main issue people complain about, and this first round of updates may not improve maximum humidity but can reduce wind burn issues (I noticed on lion's mane). First maximum fan speed was reduced 50% in all modes.  Experimentally this achieved a 1-2% increase in RH while reducing windburn on lion's mane. Second was the creation of a duty cycle mode which cycles the humidifier on and off within a 10min period (configurable) based on the duty cycle % selected with the humidity control knob. This mode ignores the RH sensor. Third was to configure what type of signals were being sent to the humidifier device. This was added to bypass the PWM timing issues to be able to control a fogger (should be done with testing by Jan 2026). FAN mode sets up the output pin for PWM signals as originally shipped, FOG mode sets up the output pin for simple HIGH/LOW signals to give the full 12v or nothing.
+      This is the main issue people complain about, and this first round will not help much but can reduce wind burn issues. First maximum fan speed was reduced 50% in all modes.  Experimentally this actually achieved a 1-2% increase in RH while reducing windburn on lion's mane. Second was the creation of a duty cycle mode which cycles the humidifier on and off within a 10min period (configurable) based on the duty cycle % selected with the humidity control knob. This mode ignores the RH sensor. Third was to configure what type of signals were being sent to the humidifier device. This was added to bypass the PWM timing issues to be able to control a fogger (should be done with testing by Jan 2026). FAN mode sets up the output pin for PWM signals as originally shipped, FOG mode sets up the output pin for simple HIGH/LOW signals to give the full 12v or nothing.
          
-         PARAMETER_HUMIDITY_MODE - Determines if the humidity sensor is controlling the system or a duty cycle (default SENSOR)
-          PARAMETER_HUMIDITY_MAX_DUTY_CYCLE - determine the max duty cycle mapped to the control knob, this can be used for finer tuning (default 100)              
+         PARAMETER_HUMIDITY_MODE - Determines if the humidity sensor is controlling the system or a duty cycle timer (default SENSOR)
+         PARAMETER_HUMIDITY_MAX_DUTY_CYCLE - determine the max duty cycle mapped to the control knob, this can be used for finer tuning (default 100)              
          PARAMETER_HUMIDITY_DEVICE - Determines if the output pin is set up for a FAN(pwm) or a constant voltage FOGGER(io) (default FAN)
-         PARAMETER_HUMIDITY_WIND_REGULATOR - Lowers the max speed of the FAN whether in SENSOR mode or Duty Cycle Mode.  This float is the fraction of the true max speed, i.e. 0.42 is 42% of the max analog output. Change this to 1 if you would like the fan to run at full blast as shipped. (default 0.42)
+         PARAMETER_HUMIDITY_WIND_REGULATOR - Lowers the max speed of a FAN device in both SENSOR mode and Duty Cycle Mode.  This float is the fraction of the true max pwm, i.e. 0.42 is 42% of the max analog output. Change this to 1 if you would like the fan to run at full blast as shipped. (default 0.42)
 
    BUG FIXES: 
-      Serial communication ended when the AirExchangeController.cpp duty cycle period ended, this may be because of a conflict with the timer.  I switched this to be based on millis() and have not had issues with serial communication.  By default, the system uses a 100% duty cycle anyway.
+      Serial communication stopped when the AirExchangeController.cpp duty cycle period ended, possibly because of a conflict with the timer.  I switched this to be based on millis() and have not had issues with serial communication.  By default, the system uses a 100% duty cycle anyway.
 
    KNOWN ISSUES:  
-      There is a drift in the 24hr lighting timer which will vary with temperature of the crystal on the microcontroller.  Experimentally, I measured about 30 minutes over 7 days, future updates may include use of the external oscillator to address this.  
+      There is a drift in the 24hr lighting timer which will vary with the temperature of the crystal in the microcontroller.  Experimentally, I measured about 30 minutes over 7 days, future updates may include use of the external oscillator to address this.  
 
 
 
