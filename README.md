@@ -95,4 +95,4 @@ This project uses PlatformIO and can be built using the PlatformIO build functio
 ## Programming
 For programming, it is recommended that you use the AVRISP mkII programmer or similar. There is a 6-pin programming header (J24) on the PCB under the control knob cover. The 6-pin programming cable can be plugged directly into this header with the red wire on the programming cable (pin 1) toward back of the Mella. Note: the PCB needs DC power for programming to work.
 
-
+I used this programmer [HERE](https://amzn.to/4mZkdU0)
